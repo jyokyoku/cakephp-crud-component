@@ -98,22 +98,39 @@ class CrudComponent extends Object
 	 * - saveMethod: saveもしくはsaveAll
 	 * - validate: save の場合は true/false, saveAll の場合は first/only/false
 	 *
-	 * @param mixed $id 更新するモデルのID
+	 * @param mixed $id 更新するモデルのIDまたは検索条件
 	 * @param array $options
 	 */
 	public function u($id = null, $options = array())
 	{
-		if (!($Model = $this->_getModel($options)) || !($data = $Model->read(null, $id))) {
+		if (!($Model = $this->_getModel($options))) {
+			return null;
+		}
+
+		$defaults = array('set' => true, 'varName' => '');
+		$options = array_merge($defaults, $options);
+
+		$var = (!$options['varName'] || !preg_match('/^[^\d][0-9a-zA-Z_]+$/', (string)$options['varName']))
+			 ? Inflector::variable($Model->alias)
+			 : (string)$options['varName'];
+		${$var} = is_array($id) ? $Model->find('first', array('conditions' => $id)) : $Model->findById($id);
+
+		if (!${$var}) {
 			return null;
 		}
 
 		$result = null;
 
 		if (!empty($this->Controller->data[$Model->alias])) {
+			$this->Controller->data[$Model->alias][$Model->primaryKey] = ${$var}[$Model->alias][$Model->primaryKey];
 			$result = $this->_save($Model, $options);
 
 		} else {
-			$this->Controller->data = $data;
+			$this->Controller->data = ${$var};
+		}
+
+		if ($options['set']) {
+			$this->Controller->set(compact($var));
 		}
 
 		return $result;
