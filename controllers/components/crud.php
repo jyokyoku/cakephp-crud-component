@@ -4,8 +4,6 @@ class CrudComponent extends Object
 	public $Controller;
 	public $Model;
 
-	protected $_result = null;
-
 	public function initialize($Controller, $config = array())
 	{
 		$this->Controller = $Controller;
