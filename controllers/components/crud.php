@@ -47,7 +47,7 @@ class CrudComponent extends Object
 	 * - varname: $Controller::viewVarsにセットする変数名
 	 *     空の場合は利用モデル名(単数・複数)が使われる
 	 *
-	 * @param mixed $id モデルのIDまたはクエリ配列
+	 * @param mixed $id モデルのIDまたは検索クエリ
 	 * @param array $options
 	 * @return array
 	 */
@@ -57,37 +57,40 @@ class CrudComponent extends Object
 			return null;
 		}
 
-		$defaults = array('paginate' => true, 'findType' => 'all', 'set' => true, 'varname' => '');
+		$defaults = array('paginate' => true, 'findType' => 'all', 'set' => true, 'varName' => '');
 		$options = array_merge($defaults, $options);
 
 		if (empty($id)) {
 			$id = array();
 		}
 
-		if (is_array($id)) {
-			$var = ($options['varname']) ? $options['varname'] : Inflector::variable(Inflector::pluralize($Model->alias));
+		$var = (!$options['varName'] || !preg_match('/^[^\d][0-9a-zA-Z_]+$/', (string)$options['varName']))
+			 ? (is_array($id) && ($options['findType'] != 'first' || $options['paginate'] == true))
+			 ? Inflector::variable(Inflector::pluralize($Model->alias))
+			 : Inflector::variable($Model->alias)
+			 : (string)$options['varName'];
 
+		if (is_array($id)) {
 			if ($options['paginate']) {
 				if (isset($id['conditions'])) {
 					$id = $id['conditions'];
 				}
 
-				$$var = $this->Controller->paginate($Model->alias, $id);
+				${$var} = $this->Controller->paginate($Model->alias, $id);
 
 			} else {
-				$$var = $Model->find($options['findType'], $id);
+				${$var} = $Model->find($options['findType'], $id);
 			}
 
 		} else {
-			$var = ($options['varname']) ? $options['varname'] : Inflector::variable($Model->alias);
-			$$var = $Model->read(null, $id);
+			${$var} = $Model->read(null, $id);
 		}
 
 		if ($options['set']) {
 			$this->Controller->set(compact($var));
 		}
 
-		return $$var;
+		return ${$var};
 	}
 
 	/**
