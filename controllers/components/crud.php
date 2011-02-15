@@ -28,7 +28,7 @@ class CrudComponent extends Object
 
 		$result = null;
 
-		if (!empty($this->Controller->data)) {
+		if (!empty($this->Controller->data[$Model->alias])) {
 			$Model->create();
 			$result = $this->_save($Model, $options);
 		}
@@ -109,7 +109,7 @@ class CrudComponent extends Object
 
 		$result = null;
 
-		if (!empty($this->Controller->data)) {
+		if (!empty($this->Controller->data[$Model->alias])) {
 			$result = $this->_save($Model, $options);
 
 		} else {
