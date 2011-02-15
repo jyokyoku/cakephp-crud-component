@@ -142,6 +142,10 @@ class CrudComponent extends Object
 	/**
 	 * データを削除する
 	 *
+	 * $idが指定されない場合、$options['formMethod']で指定された
+	 * フォームの $options['formField'] フィールドを検索し、
+	 * そこに指定された値をモデルのIDとして削除を実行する
+	 *
 	 * $options は下記を指定する
 	 * - model: モデル名またはモデルオブジェクト
 	 * - scope: 検索条件
@@ -151,7 +155,7 @@ class CrudComponent extends Object
 	 * - formField: 利用するフォームのフィールド名
 	 * - formMethod: 利用するフォーム名
 	 *
-	 * @param int $id 削除するモデルのID
+	 * @param int $id 削除するモデルのIDまたは検索条件の配列
 	 * @param array $options
 	 */
 	public function d($id, $options = array())
@@ -161,8 +165,8 @@ class CrudComponent extends Object
 		}
 
 		$defaults = array(
-			'scope' => array(), 'fields' => array(), 'cascade' => true, 'callbacks' => false,
-			'formField' => 'id', 'formMethod' => 'post'
+			'scope' => array(), 'fields' => array(), 'cascade' => true,
+			'callbacks' => false, 'formField' => 'id', 'formMethod' => 'post'
 		);
 		$options = array_merge($defaults, $options);
 
@@ -170,21 +174,25 @@ class CrudComponent extends Object
 			$form = ($options['formMethod'] == 'post') ? 'form' : 'url';
 
 			if (isset($this->Controller->params[$form][$options['formField']])) {
-				$id = $this->Controller->params[$form][$options['formField']];
+				$id = array_merge(
+					$options['scope'],
+					array($Model->escapeField() => $this->Controller->params[$form][$options['formField']])
+				);
 			}
+
+		} else if (!is_array($id)) {
+			$id = array_merge($options['scope'], array($Model->escapeField() => $id));
+
+		} else {
+			$id = array_merge($options['scope'], $id);
 		}
 
 		$result = null;
 
 		if (!empty($id)) {
-			if (!is_array($id)) {
-				$id = array($id);
-			}
+			$deleted = $Model->find('all', array('conditions' => $id, 'fields' => $options['fields']));
 
-			$conditions = array_merge((array) $options['scope'], array($Model->escapeField() => $id));
-			$deleted = $Model->find('all', array('conditions' => $conditions, 'fields' => $options['fields']));
-
-			if ($Model->deleteAll($conditions, $options['cascade'], $options['callbacks'])) {
+			if ($Model->deleteAll($id, $options['cascade'], $options['callbacks'])) {
 				$result = $deleted;
 
 			} else {
